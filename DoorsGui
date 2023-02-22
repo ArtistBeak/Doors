@@ -1,0 +1,182 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Jxereas/UI-Libraries/main/cerberus.lua"))()
+local window = Library.new("Doors") -- Args(<string> Name, <boolean?> ConstrainToScreen)
+window:LockScreenBoundaries(false) -- Args(<boolean> ConstrainToScreen)
+
+local CF = CFrame.new
+local LatestRoom = game:GetService("ReplicatedStorage").GameData.LatestRoom
+local ChaseStart = game:GetService("ReplicatedStorage").GameData.ChaseStart
+local KeyChams = {}
+local BookChams = {}
+local FigureChams = {}
+
+--  Tabs and Sections
+local tab = window:Tab("Main") -- Args(<string> Name, <string?> TabImage)
+local Esp = tab:Section("ESP") -- Args(<string> Name)
+local Char = tab:Section("Character") -- Args(<string> Name)
+
+--  Key ESP
+local toggle = Esp:Toggle("Key Chams", function(bool)
+    if bool then
+        local function ApplyKeyChams(inst)
+            wait()
+            local Cham = Instance.new("Highlight")
+            Cham.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            Cham.FillColor = Color3.new(0, 255, 0)
+            Cham.FillTransparency = 0.5
+            Cham.OutlineColor = Color3.new(0, 255, 0)
+            Cham.Parent = game:GetService("CoreGui")
+            Cham.Adornee = inst
+            Cham.RobloxLocked = true
+            return Cham
+        end
+
+        local KeyCoroutine = coroutine.create(function()
+            workspace.CurrentRooms.DescendantAdded:Connect(function(inst)
+                if inst.Name == "KeyObtain" then
+                    table.insert(KeyChams,ApplyKeyChams(inst))
+                end
+            end)
+        end)
+        for i,v in ipairs(workspace:GetDescendants()) do
+            if v.Name == "KeyObtain" then
+                table.insert(KeyChams,ApplyKeyChams(v))
+            end
+        end
+        coroutine.resume(KeyCoroutine)
+    else
+        for i,Cham in ipairs(KeyChams) do
+            Cham:Destroy()
+        end
+        KeyChams = {}
+    end
+ end) -- Args(<String> Name, <Function> Callback)
+ toggle:Set(false) -- Args(<Boolean> ToggleState, <Function?> Callback)
+
+ -- Book ESP
+ local toggle = Esp:Toggle("Book Chams", function(bool)
+    local function ApplyBookChams(inst)
+        if inst:IsDescendantOf(game:GetService("Workspace").CurrentRooms:FindFirstChild("50")) and game:GetService("ReplicatedStorage").GameData.LatestRoom.Value == 50 then
+            wait()
+            local Cham = Instance.new("Highlight")
+            Cham.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            Cham.FillColor = Color3.new(0, 1, 0.749019)
+            Cham.FillTransparency = 0.5
+            Cham.OutlineColor = Color3.new(0.792156, 0.792156, 0.792156)
+            Cham.Parent = game:GetService("CoreGui")
+            Cham.Adornee = inst
+            Cham.RobloxLocked = true
+            return Cham
+        end
+    end
+ end) -- Args(<String> Name, <Function> Callback)
+ toggle:Set(false) -- Args(<Boolean> ToggleState, <Function?> Callback)
+
+ local BookCoroutine = coroutine.create(function()
+    task.wait(1)
+    for i,v in pairs(game:GetService("Workspace").CurrentRooms["50"].Assets:GetDescendants()) do
+        if v.Name == "LiveHintBook" then
+            table.insert(BookChams,ApplyBookChams(v))
+        end
+    end
+end)
+
+ local toggle = Esp:Toggle("Figure Chams", function(bool)
+    local function ApplyEntityChams(inst)
+        wait()
+        local Cham = Instance.new("Highlight")
+        Cham.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        Cham.FillColor = Color3.new(1, 0, 0)
+        Cham.FillTransparency = 0.5
+        Cham.OutlineColor = Color3.new(0.792156, 0.792156, 0.792156)
+        Cham.Parent = game:GetService("CoreGui")
+        Cham.Adornee = inst
+        Cham.RobloxLocked = true
+        return Cham
+    end
+ end) -- Args(<String> Name, <Function> Callback)
+ toggle:Set(false) -- Args(<Boolean> ToggleState, <Function?> Callback)
+
+ local EntityCoroutine = coroutine.create(function()
+    local Entity = game:GetService("Workspace").CurrentRooms["50"].FigureSetup:WaitForChild("FigureRagdoll",5)
+    Entity:WaitForChild("Torso",2.5)
+    table.insert(FigureChams,ApplyEntityChams(Entity))
+end)
+
+local humanoid = game.Players.LocalPlayer.Character:WaitForChild("Humanoid")
+
+local TargetWalkspeed = 12
+local runConnection
+
+Char:Slider("Walkspeed", function(value)
+    TargetWalkspeed = value
+end, 30, 0)
+
+Char:Toggle("Toggle Speed", function(enabled)
+    if enabled then
+        runConnection = game:GetService("RunService").RenderStepped:Connect(function()
+            pcall(function()
+                if game.Players.LocalPlayer.Character.Humanoid.MoveDirection.Magnitude > 0 then
+                    game.Players.LocalPlayer.Character:TranslateBy(game.Players.LocalPlayer.Character.Humanoid.MoveDirection * TargetWalkspeed/50)
+                end
+            end)
+        end)
+    else
+        if runConnection then
+            runConnection:Disconnect()
+        end
+    end
+end)
+
+if LatestRoom.Value == 50 then
+    coroutine.resume(BookCoroutine)
+    coroutine.resume(EntityCoroutine)
+end
+
+local label = Char:Label("More Features") -- Args(<String> LabelText, <Number?> TextSize, <Color3?> TextColor)
+
+local toggle = Char:Toggle("Instant Interact", function(bool)
+    game:GetService("ProximityPromptService").PromptButtonHoldBegan:Connect(function(prompt)
+        fireproximityprompt(prompt)
+    end)    
+ end) -- Args(<String> Name, <Function> Callback)
+ toggle:Set(false) -- Args(<Boolean> ToggleState, <Function?> Callback)
+
+ local toggle = Char:Toggle("No Screech", function(bool)
+    workspace.CurrentCamera.ChildAdded:Connect(function(child)
+        if child.Name == "Screech" and ScreechToggle == true then
+            child:Destroy()
+        end
+    end)    
+ end) -- Args(<String> Name, <Function> Callback)
+ toggle:Set(false) -- Args(<Boolean> ToggleState, <Function?> Callback)
+
+ local tab = window:Tab("Skip Doors") -- Args(<string> Name, <string?> TabImage)
+ local Skip = tab:Section("Skip 1 Room") -- Args(<string> Name)
+
+ Skip:Button("Skip!", function()
+    local HasKey = false
+    local CurrentDoor = workspace.CurrentRooms[tostring(game:GetService("ReplicatedStorage").GameData.LatestRoom.Value)]:WaitForChild("Door")
+    for i, v in ipairs(CurrentDoor.Parent:GetDescendants()) do
+        if v.Name == "KeyObtain" then
+            HasKey = v
+        end
+    end
+
+    if HasKey then
+        game.Players.LocalPlayer.Character:PivotTo(CFrame.new(HasKey.Hitbox.Position))
+        wait(0.3)
+        fireproximityprompt(HasKey.ModulePrompt, 0)
+        game.Players.LocalPlayer.Character:PivotTo(CFrame.new(CurrentDoor.Door.Position))
+        wait(0.3)
+        fireproximityprompt(CurrentDoor.Lock.UnlockPrompt, 0)
+    end
+
+    if game:GetService("ReplicatedStorage").GameData.LatestRoom.Value == 50 then
+        CurrentDoor = workspace.CurrentRooms[tostring(game:GetService("ReplicatedStorage").GameData.LatestRoom.Value + 1)]:WaitForChild("Door")
+    end
+
+    game.Players.LocalPlayer.Character:PivotTo(CFrame.new(CurrentDoor.Door.Position))
+    wait(0.3)
+    CurrentDoor.ClientOpen:FireServer()
+end)
+
